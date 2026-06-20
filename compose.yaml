@@ -1,0 +1,31 @@
+services:
+  agent-gateway:
+    build:
+      context: .
+    image: agent-gateway:local
+    container_name: agent-gateway
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      AGENT_GATEWAY_HOST: 0.0.0.0
+      AGENT_GATEWAY_PORT: 8765
+      AGENT_GATEWAY_WORKDIR: /workspace
+      CLAUDE_BIN: claude
+      CODEX_BIN: codex
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - ./workspace:/workspace
+      - ${HOME}/.claude:/home/app/.claude
+      - ${HOME}/.codex:/home/app/.codex
+
+  # Example: another app can call http://agent-gateway:8765/v1 inside this compose network.
+  # your-app:
+  #   image: your-app:local
+  #   environment:
+  #     OPENAI_BASE_URL: http://agent-gateway:8765/v1
+  #     OPENAI_API_KEY: ${AGENT_GATEWAY_API_KEY}
+  #   depends_on:
+  #     agent-gateway:
+  #       condition: service_healthy

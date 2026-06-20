@@ -1,0 +1,14 @@
+.env
+.claude/
+.codegraph/
+.opencode/
+
+workspace/
+bin/
+dist/
+tmp/
+*.log
+__pycache__/
+*.pyc
+
+.DS_Store

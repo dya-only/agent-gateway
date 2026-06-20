@@ -1,0 +1,10 @@
+.git
+.env
+.claude
+.codegraph
+.opencode
+workspace
+bin
+dist
+tmp
+*.log
