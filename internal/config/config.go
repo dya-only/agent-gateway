@@ -43,7 +43,9 @@ func Load() Config {
 
 	cfg.Models = []Model{
 		{Name: "claude-sonnet", Provider: "claude", Model: env("CLAUDE_MODEL", "sonnet")},
-		{Name: "codex", Provider: "codex", Model: env("CODEX_MODEL", "gpt-5.5")},
+	}
+	for _, m := range splitModels(env("CODEX_MODELS", env("CODEX_MODEL", "gpt-5.5"))) {
+		cfg.Models = append(cfg.Models, Model{Name: m, Provider: "codex", Model: m})
 	}
 
 	return cfg
@@ -79,4 +81,14 @@ func splitArgs(value string) []string {
 		return nil
 	}
 	return fields
+}
+
+func splitModels(value string) []string {
+	var out []string
+	for _, m := range strings.Split(value, ",") {
+		if m = strings.TrimSpace(m); m != "" {
+			out = append(out, m)
+		}
+	}
+	return out
 }
