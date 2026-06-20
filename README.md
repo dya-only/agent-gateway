@@ -15,6 +15,7 @@ This is an MVP focused on personal local use. It exposes a small OpenAI-compatib
 - Codex CLI adapter via `codex exec --skip-git-repo-check`
 - Local-only default bind address: `127.0.0.1:8765`
 - Request timeout and optional fixed working directory
+- Concurrent request limiting with configurable worker pool
 
 Tool calling, `/v1/responses`, and session persistence are intentionally not included in the first MVP.
 
@@ -98,20 +99,30 @@ Configuration is read from environment variables.
 | `AGENT_GATEWAY_PORT` | `8765` | Server port |
 | `AGENT_GATEWAY_API_KEY` | empty | Optional Bearer auth key |
 | `AGENT_GATEWAY_TIMEOUT_SECONDS` | `300` | CLI request timeout |
+| `AGENT_GATEWAY_MAX_WORKERS` | `8` | Max concurrent CLI requests |
 | `AGENT_GATEWAY_WORKDIR` | empty | Optional fixed subprocess working directory |
 | `CLAUDE_BIN` | `claude` | Claude CLI binary |
 | `CLAUDE_ARGS` | `--print` | Base Claude CLI args |
 | `CLAUDE_MODEL` | `sonnet` | Model passed to Claude adapter |
 | `CODEX_BIN` | `codex` | Codex CLI binary |
 | `CODEX_ARGS` | `exec --skip-git-repo-check` | Base Codex CLI args |
-| `CODEX_MODEL` | `gpt-5.5` | Model passed to Codex adapter |
+| `CODEX_MODELS` | `gpt-5.5` | Comma-separated list of Codex model IDs to expose |
+| `CODEX_MODEL` | `gpt-5.5` | Fallback when `CODEX_MODELS` is not set |
 
 ## Models
 
-The MVP exposes two model IDs:
+By default the gateway exposes:
 
-- `claude-sonnet`
-- `codex`
+- `claude-sonnet` — routed to Claude CLI
+- `gpt-5.5` — routed to Codex CLI
+
+To expose multiple Codex models, set `CODEX_MODELS` as a comma-separated list:
+
+```
+CODEX_MODELS=gpt-5.5,gpt-5.4,gpt-5.4-mini
+```
+
+Each entry becomes a separate model ID in the API. Use the exact model ID in your request.
 
 Check available models:
 
@@ -141,7 +152,7 @@ curl http://127.0.0.1:8765/v1/chat/completions \
   -H "Authorization: Bearer local-secret" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "codex",
+    "model": "gpt-5.5",
     "messages": [
       {"role": "user", "content": "Write a small Go hello world program."}
     ]
