@@ -12,6 +12,7 @@ type Config struct {
 	Port       string
 	APIKey     string
 	Timeout    time.Duration
+	MaxWorkers int
 	Models     []Model
 	ClaudeBin  string
 	ClaudeArgs []string
@@ -32,6 +33,7 @@ func Load() Config {
 		Port:       env("AGENT_GATEWAY_PORT", "8765"),
 		APIKey:     os.Getenv("AGENT_GATEWAY_API_KEY"),
 		Timeout:    time.Duration(envInt("AGENT_GATEWAY_TIMEOUT_SECONDS", 300)) * time.Second,
+		MaxWorkers: envInt("AGENT_GATEWAY_MAX_WORKERS", 8),
 		ClaudeBin:  env("CLAUDE_BIN", "claude"),
 		ClaudeArgs: splitArgs(env("CLAUDE_ARGS", "--print")),
 		CodexBin:   env("CODEX_BIN", "codex"),

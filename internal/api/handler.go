@@ -18,10 +18,28 @@ import (
 type Handler struct {
 	cfg    config.Config
 	router *provider.Router
+	sem    chan struct{}
 }
 
 func NewHandler(cfg config.Config, router *provider.Router) *Handler {
-	return &Handler{cfg: cfg, router: router}
+	return &Handler{
+		cfg:    cfg,
+		router: router,
+		sem:    make(chan struct{}, cfg.MaxWorkers),
+	}
+}
+
+func (h *Handler) acquire(ctx context.Context) bool {
+	select {
+	case h.sem <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+func (h *Handler) release() {
+	<-h.sem
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -66,6 +84,12 @@ func (h *Handler) chatCompletions(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), h.cfg.Timeout)
 	defer cancel()
+
+	if !h.acquire(ctx) {
+		writeError(w, http.StatusServiceUnavailable, "capacity_error", "server at capacity")
+		return
+	}
+	defer h.release()
 
 	content, err := h.router.Complete(ctx, req.Model, req.Messages)
 	if err != nil {
@@ -121,6 +145,12 @@ func (h *Handler) streamChatCompletions(w http.ResponseWriter, r *http.Request, 
 
 	ctx, cancel := context.WithTimeout(r.Context(), h.cfg.Timeout)
 	defer cancel()
+
+	if !h.acquire(ctx) {
+		writeError(w, http.StatusServiceUnavailable, "capacity_error", "server at capacity")
+		return
+	}
+	defer h.release()
 
 	chunks, errs, err := h.router.StreamComplete(ctx, req.Model, req.Messages)
 	if err != nil {
